@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.tokisport.app.data.Lineup
 import com.tokisport.app.data.MatchResult
 import com.tokisport.app.data.Merger
 import com.tokisport.app.data.Source
@@ -437,47 +438,66 @@ fun TeamDetailScreen(
             items(matches) { match -> MatchRow(labels, match, enabled) }
         }
         item { SectionTitle("阵容") }
-        item {
-            val lineup = team.lineup
-            if (lineup == null) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
-                ) {
-                    Text(
-                        "阵容数据待 Google Sports / 直播吧 / 懂球帝同步（或其来源已在设置中关闭）。",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(16.dp),
-                    )
-                }
-            } else {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "${lineup.context} · 阵型 ${lineup.formation}",
-                            style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        lineup.players.forEach { player ->
-                            Text(player, style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(vertical = 2.dp))
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        Text("来源：${lineup.source}", style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        SourceTag(lineup.sources, enabled)
-                    }
-                }
+        // 按场次阵容（matchLineups，key = 对手 id）优先逐场展示；否则回退到单阵容/待同步。
+        val perMatchLineups = matches.mapNotNull { match ->
+            val opponentId = if (match.homeTeamId == team.id) match.awayTeamId else match.homeTeamId
+            team.matchLineups[opponentId]?.let { lineup -> match to lineup }
+        }
+        if (perMatchLineups.isNotEmpty()) {
+            items(perMatchLineups) { (_, lineup) ->
+                LineupCard(lineup, enabled)
             }
-            Spacer(Modifier.height(24.dp))
+            item { Spacer(Modifier.height(24.dp)) }
+        } else {
+            item {
+                val lineup = team.lineup
+                if (lineup == null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        ),
+                    ) {
+                        Text(
+                            "阵容数据待 Google Sports / 直播吧 / 懂球帝同步（或其来源已在设置中关闭）。",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp),
+                        )
+                    }
+                } else {
+                    LineupCard(lineup, enabled)
+                }
+                Spacer(Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun LineupCard(lineup: Lineup, enabled: Set<Source>) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "${lineup.context} · 阵型 ${lineup.formation}",
+                style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(8.dp))
+            lineup.players.forEach { player ->
+                Text(player, style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(vertical = 2.dp))
+            }
+            Spacer(Modifier.height(8.dp))
+            Text("来源：${lineup.source}", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            SourceTag(lineup.sources, enabled)
         }
     }
 }

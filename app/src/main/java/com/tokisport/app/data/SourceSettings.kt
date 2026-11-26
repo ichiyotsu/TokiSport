@@ -40,7 +40,11 @@ object Merger {
             .filter { it.sources.any { s -> s in enabled } }
             .map { team ->
                 val lineup = team.lineup?.takeIf { l -> l.sources.any { s -> s in enabled } }
-                if (lineup == team.lineup) team else team.copy(lineup = lineup)
+                val matchLineups = team.matchLineups.filterValues { l ->
+                    l.sources.any { s -> s in enabled }
+                }
+                if (lineup == team.lineup && matchLineups == team.matchLineups) team
+                else team.copy(lineup = lineup, matchLineups = matchLineups)
             }
         val matches = tournament.matches.filter { it.sources.any { s -> s in enabled } }
         return tournament.copy(teams = teams, matches = matches)

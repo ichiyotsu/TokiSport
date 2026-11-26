@@ -78,6 +78,11 @@ data class TeamRecord(
     val lineup: Lineup? = null,
     /** 核实过本条战绩的数据源集合。 */
     val sources: Set<Source> = emptySet(),
+    /**
+     * 按场次收录的首发阵容，key = 对手球队 id（同一赛事内一支球队对同一对手只收录一场时唯一）。
+     * 非空时详情页按比赛逐场展示阵容，优先于 [lineup]；其他球队保持单阵容/待同步不变。
+     */
+    val matchLineups: Map<String, Lineup> = emptyMap(),
 ) {
     val gd: Int? get() = if (gf != null && ga != null) gf - ga else null
     val points: Int get() = won * 3 + drawn

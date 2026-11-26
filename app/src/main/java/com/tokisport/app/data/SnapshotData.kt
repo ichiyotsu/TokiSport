@@ -116,11 +116,42 @@ object SnapshotData {
         sources = setOf(ZHIBO8),
     )
 
+    private val chinaLineupSpain = Lineup(
+        formation = "—",
+        context = "小组赛第 1 轮 vs 西班牙 · 首发阵容",
+        players = listOf(
+            "21 江宇涵（门将）", "2 张旭尧", "3 金昱成", "4 南子勋", "5 李钧鹏",
+            "6 周雨诺（队长）", "7 邝兆镭", "8 徐正鹏", "10 万项", "11 何思凡", "9 赵松源",
+        ),
+        source = "直播吧首发名单",
+        sources = setOf(ZHIBO8),
+    )
+
+    private val chinaLineupMorocco = Lineup(
+        formation = "4-4-2",
+        context = "小组赛第 2 轮 vs 摩洛哥 · 首发阵容（潘朝伟顶替徐正鹏，其余不变）",
+        players = listOf(
+            "21 江宇涵（门将）", "2 张旭尧", "3 金昱成", "4 南子勋", "5 李钧鹏",
+            "6 周雨诺（队长）", "7 邝兆镭", "10 万项", "11 何思凡", "13 潘朝伟", "9 赵松源",
+        ),
+        source = "直播吧首发名单",
+        sources = setOf(ZHIBO8),
+    )
+
+    /** 中国队三场小组赛首发（key = 对手球队 id）。 */
+    private val chinaMatchLineups = mapOf(
+        "spain-u17" to chinaLineupSpain,
+        "morocco-u17" to chinaLineupMorocco,
+        "fiji" to chinaLineup,
+    )
+
     private fun u17Team(
         id: String, cn: String, en: String, flag: String, color: Long,
         group: String, rank: String, p: Int, w: Int, d: Int, l: Int,
         gf: Int?, ga: Int?, lineup: Lineup? = null, sources: Set<Source> = GS,
-    ) = TeamRecord(id, cn, en, flag, color, group, rank, p, w, d, l, gf, ga, "", lineup, sources)
+        scopeNote: String = "", matchLineups: Map<String, Lineup> = emptyMap(),
+    ) = TeamRecord(id, cn, en, flag, color, group, rank, p, w, d, l, gf, ga,
+        scopeNote, lineup, sources, matchLineups)
 
     private val u17 = Tournament(
         id = "u17wc2026",
@@ -130,7 +161,7 @@ object SnapshotData {
         venue = "卡塔尔 · 多哈（阿斯拜尔区）",
         status = "进行中 · 小组赛",
         heroTitle = "小组赛收官在即",
-        heroBody = "A–H 组排名已定：西班牙 U17 三战全胜、22 球零失球领跑；中国 U17 以 1 胜 1 平 1 负积 4 分晋级 32 强，为 21 年来中国男足国字号首次在世界大赛小组出线。I–L 组最后一轮 11月27日进行。",
+        heroBody = "A–H 组排名已定：西班牙 U17 三战全胜、22 球零失球领跑；中国 U17 以 1 胜 1 平 1 负积 4 分晋级 32 强，为 21 年来中国男足国字号首次在世界大赛小组出线。I–L 组已补入第 2 轮后积分，最后一轮 11月27日进行。",
         focusStats = listOf(
             "参赛球队" to "48 支",
             "西班牙 U17" to "22 球 · 0 失球",
@@ -165,8 +196,42 @@ object SnapshotData {
             u17Team("spain-u17", "西班牙", "Spain", "🇪🇸", 0xFFAA151B, "H组", "第 1 · 晋级", 3, 3, 0, 0, 22, 0),
             u17Team("morocco-u17", "摩洛哥", "Morocco", "🇲🇦", 0xFFC1272D, "H组", "第 2 · 晋级", 3, 1, 1, 1, 8, 4),
             u17Team("china", "中国", "China PR", "🇨🇳", 0xFFDE2910, "H组", "第 3 · 晋级", 3, 1, 1, 1, 10, 7,
-                lineup = chinaLineup, sources = setOf(GOOGLE_SPORTS, DONGQIUDI)),
+                lineup = chinaLineup, sources = setOf(GOOGLE_SPORTS, DONGQIUDI),
+                matchLineups = chinaMatchLineups),
             u17Team("fiji", "斐济", "Fiji", "🇫🇯", 0xFF68BFE5, "H组", "第 4", 3, 0, 0, 3, null, null),
+            // I–L 组：第 2 轮后积分（最后一轮 11月27日进行，非最终排名）
+            u17Team("brazil", "巴西", "Brazil", "🇧🇷", 0xFF009739, "I组", "第 1 · 已出线", 2, 2, 0, 0, 3, 1,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行"),
+            u17Team("ireland", "爱尔兰", "Republic of Ireland", "🇮🇪", 0xFF169B62, "I组", "第 2", 2, 1, 0, 1, 3, 2,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行"),
+            u17Team("tanzania", "坦桑尼亚", "Tanzania", "🇹🇿", 0xFF1EB53A, "I组", "第 3", 2, 0, 1, 1, 2, 3,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行"),
+            u17Team("costarica", "哥斯达黎加", "Costa Rica", "🇨🇷", 0xFFCE1126, "I组", "第 4", 2, 0, 1, 1, 2, 4,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行"),
+            u17Team("dominican", "多米尼加共和国", "Dominican Republic", "🇩🇴", 0xFF002D62, "J组", "第 1", 2, 1, 1, 0, null, null,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行 · 进失球待核实"),
+            u17Team("chile", "智利", "Chile", "🇨🇱", 0xFFD52B1E, "J组", "第 2", 2, 1, 0, 1, null, null,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行 · 进失球待核实"),
+            u17Team("algeria", "阿尔及利亚", "Algeria", "🇩🇿", 0xFF006233, "J组", "第 3", 2, 1, 0, 1, null, null,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行 · 进失球待核实"),
+            u17Team("montenegro", "黑山", "Montenegro", "🇲🇪", 0xFFC41130, "J组", "第 4", 2, 0, 1, 1, null, null,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行 · 进失球待核实"),
+            u17Team("mexico", "墨西哥", "Mexico", "🇲🇽", 0xFF006847, "K组", "第 1 · 已出线", 2, 2, 0, 0, null, null,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行 · 进失球待核实"),
+            u17Team("venezuela", "委内瑞拉", "Venezuela", "🇻🇪", 0xFFCF142B, "K组", "第 2 · 已出线", 2, 2, 0, 0, null, null,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行 · 进失球待核实"),
+            u17Team("romania", "罗马尼亚", "Romania", "🇷🇴", 0xFF002B7F, "K组", "第 3", 2, 0, 0, 2, null, null,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行 · 进失球待核实"),
+            u17Team("cameroon", "喀麦隆", "Cameroon", "🇨🇲", 0xFF007A5E, "K组", "第 4", 2, 0, 0, 2, null, null,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行 · 进失球待核实"),
+            u17Team("colombia", "哥伦比亚", "Colombia", "🇨🇴", 0xFFFCD116, "L组", "第 1 · 已出线", 2, 2, 0, 0, 4, 1,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行"),
+            u17Team("serbia", "塞尔维亚", "Serbia", "🇷🇸", 0xFFC6363C, "L组", "第 2 · 已出线", 2, 2, 0, 0, 3, 0,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行"),
+            u17Team("japan", "日本", "Japan", "🇯🇵", 0xFFBC002D, "L组", "第 3", 2, 0, 0, 2, 1, 3,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行"),
+            u17Team("honduras", "洪都拉斯", "Honduras", "🇭🇳", 0xFF00BCE4, "L组", "第 4", 2, 0, 0, 2, 0, 4,
+                scopeNote = "第 2 轮后 · 最后一轮 11月27日进行"),
         ),
         matches = listOf(
             // 11月26日（第 3 轮，E–H 组）
@@ -188,17 +253,28 @@ object SnapshotData {
             MatchResult("小组赛 C组", "11月25日", "australia", "mozambique", 2, 2, "", GS),
             MatchResult("小组赛 D组", "11月25日", "uruguay", "france-u17", 0, 3, "", GS),
             MatchResult("小组赛 D组", "11月25日", "haiti", "saudi", 1, 2, "", GS),
+            // 11月24日（第 2 轮，I–L 组）
+            MatchResult("小组赛 I组", "11月24日", "costarica", "ireland", 0, 2, "", GS),
+            MatchResult("小组赛 I组", "11月24日", "brazil", "tanzania", 1, 0, "", GS),
+            MatchResult("小组赛 J组", "11月24日", "dominican", "chile", 2, 1, "", GS),
+            MatchResult("小组赛 J组", "11月24日", "algeria", "montenegro", 2, 1, "", GS),
+            MatchResult("小组赛 K组", "11月24日", "venezuela", "romania", 1, 0, "", GS),
+            MatchResult("小组赛 K组", "11月24日", "mexico", "cameroon", 4, 0, "", GS),
+            MatchResult("小组赛 L组", "11月24日", "japan", "serbia", 0, 1, "", GS),
+            MatchResult("小组赛 L组", "11月24日", "honduras", "colombia", 0, 2, "", GS),
             // 中国队前两轮
             MatchResult("小组赛 H组", "第 2 轮", "china", "morocco-u17", 2, 2,
                 "赵松源梅开二度", setOf(GOOGLE_SPORTS, DONGQIUDI)),
             MatchResult("小组赛 H组", "第 1 轮", "spain-u17", "china", 5, 0, "", setOf(GOOGLE_SPORTS, DONGQIUDI)),
         ),
         fixtures = listOf(
-            Fixture("小组赛 I–L 组", "11月27日", "I–L 组最后一轮今日进行", "积分榜待更新"),
+            Fixture("小组赛 L组", "11月27日 21:00", "哥伦比亚 vs 塞尔维亚", "多哈 · I–L 组最后一轮"),
+            Fixture("小组赛 L组", "11月27日 21:00", "洪都拉斯 vs 日本", "多哈 · I–L 组最后一轮"),
+            Fixture("小组赛 I–L 组", "11月27日", "I–L 组其余最后一轮今日进行", "积分榜为第 2 轮后，赛后待更新"),
             Fixture("32 强淘汰赛", "11月30日起", "对阵待小组赛全部结束后确定", ""),
             Fixture("决赛", "12月13日", "卡塔尔 · 多哈", ""),
         ),
-        dataScope = "快照范围：A–H 组第 3 轮后积分；I–L 组最后一轮 11月27日进行，待更新。部分球队进失球尚未核实，显示为「—」。中国队首发（vs 斐济）已核实（直播吧）。",
+        dataScope = "快照范围：A–H 组第 3 轮后积分；I–L 组为第 2 轮后积分（最后一轮 11月27日进行，非最终排名）。J、K 组进失球尚未核实，显示为「—」。中国队三场小组赛首发已核实（直播吧）。",
         extraTeamLabels = mapOf(
             "newcaledonia" to "🇳🇨 新喀里多尼亚",
             "denmark" to "🇩🇰 丹麦",
