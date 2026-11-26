@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Simple football: white circle with pentagon seams, centred in the adaptive safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30a24,24 0,1 0,0.001 0z" />
+    <path
+        android:fillColor="#6750A4"
+        android:pathData="M54,44l7.6,5.5 -2.9,8.9h-9.4l-2.9,-8.9z" />
+</vector>
