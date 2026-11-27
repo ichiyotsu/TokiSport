@@ -17,7 +17,7 @@ package com.tokisport.app.data
  * 实现同一接口的数据源并提供 API Key，UI 无需改动。
  */
 
-/** 数据源（设置页三个开关与之一一对应）。 */
+/** 数据源（「我的」页三个开关与之一一对应）。 */
 enum class Source(val label: String, val role: String) {
     GOOGLE_SPORTS("Google Sports", "比分 · 积分榜"),
     ZHIBO8("直播吧", "比分 · 阵容"),
@@ -64,7 +64,7 @@ data class TeamRecord(
     val nameCn: String,
     val nameEn: String,
     val flag: String,
-    /** 队徽占位色（0xAARRGGBB）。0.1.0 用国旗 emoji + 彩色首字圆作为 logo 处理，不伪造真实队徽。 */
+    /** 队徽回退色（0xAARRGGBB）：真实队徽（TheSportsDB，见 ui/Crests.kt）缺失时才用彩色首字圆回退，不伪造队徽。 */
     val color: Long,
     val group: String,
     val rankLabel: String,

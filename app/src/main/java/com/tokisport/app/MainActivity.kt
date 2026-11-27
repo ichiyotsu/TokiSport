@@ -2,39 +2,50 @@ package com.tokisport.app
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Leaderboard
+import androidx.compose.material.icons.rounded.SportsSoccer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.tokisport.app.data.MatchResult
 import com.tokisport.app.data.Merger
-import com.tokisport.app.data.SnapshotSportsDataSource
 import com.tokisport.app.data.SourceSettings
 import com.tokisport.app.data.TeamRecord
-import com.tokisport.app.ui.HomeScreen
-import com.tokisport.app.ui.RecordsScreen
-import com.tokisport.app.ui.SettingsScreen
+import com.tokisport.app.data.Tournament
+import com.tokisport.app.ui.ArenaScreen
+import com.tokisport.app.ui.AvatarButton
+import com.tokisport.app.ui.FloatingNavBar
+import com.tokisport.app.ui.FocusDetailScreen
+import com.tokisport.app.ui.MatchDetailScreen
+import com.tokisport.app.ui.NavEntry
+import com.tokisport.app.ui.OverlayTitleHeader
+import com.tokisport.app.ui.ProfileScreen
+import com.tokisport.app.ui.StandingsScreen
 import com.tokisport.app.ui.TeamDetailScreen
 import com.tokisport.app.ui.TokiSportTheme
 import com.tokisport.app.ui.TournamentChipRow
-import com.tokisport.app.ui.TournamentSwitcher
+import com.tokisport.app.ui.tokiPageColor
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,136 +60,155 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Tab(val label: String, val glyph: String) {
-    HOME("主页", "🏠"),
-    RECORDS("战绩", "🏆"),
-    SETTINGS("设置", "⚙️"),
+private enum class Tab(val label: String, val icon: ImageVector) {
+    ARENA("竞技", Icons.Rounded.SportsSoccer),
+    STANDINGS("积分", Icons.Rounded.Leaderboard),
+}
+
+/** 二级页导航栈（焦点 / 球队 / 比赛详情 / 我的），后进先出，系统返回键逐层退。 */
+private sealed interface Dest {
+    data class Focus(val tournamentId: String) : Dest
+    data class Team(val tournamentId: String, val team: TeamRecord) : Dest
+    data class Match(val tournamentId: String, val match: MatchResult) : Dest
+    data object Profile : Dest
 }
 
 @Composable
 private fun TokiSportApp(settings: SourceSettings) {
-    val dataSource = remember { SnapshotSportsDataSource() }
+    val dataSource = remember { com.tokisport.app.data.SnapshotSportsDataSource() }
     val tournaments = remember { dataSource.tournaments() }
     val enabled by settings.enabled
 
-    var tab by remember { mutableStateOf(Tab.HOME) }
+    var tab by remember { mutableStateOf(Tab.ARENA) }
     var tournamentId by remember { mutableStateOf(tournaments.first().id) }
-    var selectedTeam by remember { mutableStateOf<TeamRecord?>(null) }
+    var stack by remember { mutableStateOf<List<Dest>>(emptyList()) }
+    val current = stack.lastOrNull()
 
-    val full = tournaments.first { it.id == tournamentId }
-    // 综合结果：按已启用数据源合并/过滤后的赛事视图（标签查全量表，保证比分行队名完整）。
-    val merged = remember(full, enabled) { Merger.merged(full, enabled) }
-    val labels = remember(full) {
-        full.teams.associate { it.id to "${it.flag} ${it.nameCn}" } + full.extraTeamLabels
+    // 综合结果：全部赛事按已启用数据源合并后的视图（竞技页统一展示、积分页按选中赛事）。
+    val mergedAll = remember(tournaments, enabled) {
+        tournaments.map { Merger.merged(it, enabled) }
     }
+    val labelsByTournament = remember(mergedAll) {
+        mergedAll.associate { t ->
+            t.id to (t.teams.associate { it.id to "${it.flag} ${it.nameCn}" } + t.extraTeamLabels)
+        }
+    }
+    fun mergedOf(id: String): Tournament = mergedAll.first { it.id == id }
+    fun push(dest: Dest) { stack = stack + dest }
+    fun pop() { stack = stack.dropLast(1) }
 
-    Scaffold(
-        bottomBar = {
-            // TokiUI 悬浮胶囊底栏：主页 / 战绩 / 设置。
-            // 本应用不采样窗口内容做真实磨砂，按 TokiUI material/fallback + solidBar 走实色回退：
-            // 不透明表面 + 3dp 强调色（primary）描边，描边与选中胶囊之间留间隙，不做整幅渐隐。
-            Box(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)) {
-                Surface(
-                    shape = RoundedCornerShape(percent = 50),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    border = androidx.compose.foundation.BorderStroke(
-                        3.dp,
-                        MaterialTheme.colorScheme.primary,
-                    ),
-                    shadowElevation = 6.dp,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(modifier = Modifier.padding(6.dp)) {
-                        Tab.entries.forEach { t ->
-                            val selected = tab == t && selectedTeam == null || tab == t && t == Tab.RECORDS && selectedTeam != null
-                            Surface(
-                                shape = RoundedCornerShape(percent = 50),
-                                color = if (selected) MaterialTheme.colorScheme.secondaryContainer
-                                else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                TextButton(onClick = {
-                                    tab = t
-                                    if (t != Tab.RECORDS) selectedTeam = null
-                                }) {
-                                    Text(
-                                        "${t.glyph} ${t.label}",
-                                        color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-    ) { innerPadding ->
-        Column(
+    BackHandler(enabled = stack.isNotEmpty()) { pop() }
+
+    val hazeState = rememberHazeState()
+    val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val contentTop = statusTop + 72.dp
+    val contentBottom = if (current == null) 96.dp else 24.dp
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(tokiPageColor()),
+    ) {
+        // 内容根：注册为 Haze 内容源，标题头与底栏的玻璃从这里采样（TokiMusic 同款结构）。
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .hazeSource(hazeState),
         ) {
-            val team = selectedTeam
-            if (team != null && tab == Tab.RECORDS) {
-                TeamDetailScreen(
-                    tournament = merged,
-                    labels = labels,
-                    team = merged.teams.firstOrNull { it.id == team.id } ?: team,
-                    enabled = enabled,
-                    onBack = { selectedTeam = null },
-                )
-            } else {
-                Text(
-                    text = when (tab) {
-                        Tab.HOME -> "TokiSport"
-                        Tab.RECORDS -> "战绩"
-                        Tab.SETTINGS -> "设置"
-                    },
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-                )
-                when (tab) {
-                    Tab.HOME -> {
-                        Column {
-                            Box(modifier = Modifier.padding(horizontal = 24.dp)) {
-                                TournamentSwitcher(tournaments, tournamentId) { tournamentId = it }
-                            }
-                            HomeScreen(
-                                tournament = merged,
-                                labels = labels,
-                                enabled = enabled,
-                                onGoSettings = { tab = Tab.SETTINGS },
-                                onOpenRecords = { tab = Tab.RECORDS },
-                                onOpenTeam = {
-                                    selectedTeam = it
-                                    tab = Tab.RECORDS
-                                },
-                            )
-                        }
-                    }
-                    Tab.RECORDS -> {
-                        Column {
-                            // Sofascore 式横向筛选芯片行（战绩页赛事切换）
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = contentTop, bottom = contentBottom),
+            ) {
+                when (val dest = current) {
+                    null -> when (tab) {
+                        Tab.ARENA -> ArenaScreen(
+                            tournaments = mergedAll,
+                            labelsByTournament = labelsByTournament,
+                            enabled = enabled,
+                            onOpenProfile = { push(Dest.Profile) },
+                            onOpenFocus = { push(Dest.Focus(it.id)) },
+                            onOpenMatch = { t, m -> push(Dest.Match(t.id, m)) },
+                        )
+                        Tab.STANDINGS -> Column {
                             Box(modifier = Modifier.padding(horizontal = 24.dp)) {
                                 TournamentChipRow(tournaments, tournamentId) { tournamentId = it }
                             }
-                            RecordsScreen(
-                                tournament = merged,
+                            StandingsScreen(
+                                tournament = mergedOf(tournamentId),
                                 enabled = enabled,
-                                onGoSettings = { tab = Tab.SETTINGS },
-                                onOpenTeam = { selectedTeam = it },
+                                onOpenProfile = { push(Dest.Profile) },
+                                onOpenTeam = { push(Dest.Team(tournamentId, it)) },
                             )
                         }
                     }
-                    Tab.SETTINGS -> SettingsScreen(
+                    is Dest.Focus -> {
+                        val t = mergedOf(dest.tournamentId)
+                        FocusDetailScreen(
+                            tournament = t,
+                            labels = labelsByTournament[t.id] ?: emptyMap(),
+                            enabled = enabled,
+                            onOpenMatch = { tt, m -> push(Dest.Match(tt.id, m)) },
+                        )
+                    }
+                    is Dest.Team -> {
+                        val t = mergedOf(dest.tournamentId)
+                        TeamDetailScreen(
+                            tournament = t,
+                            labels = labelsByTournament[t.id] ?: emptyMap(),
+                            team = t.teams.firstOrNull { it.id == dest.team.id } ?: dest.team,
+                            enabled = enabled,
+                            onOpenTeam = { push(Dest.Team(dest.tournamentId, it)) },
+                            onOpenMatch = { m -> push(Dest.Match(dest.tournamentId, m)) },
+                        )
+                    }
+                    is Dest.Match -> {
+                        val t = mergedOf(dest.tournamentId)
+                        MatchDetailScreen(
+                            tournament = t,
+                            labels = labelsByTournament[t.id] ?: emptyMap(),
+                            match = dest.match,
+                            enabled = enabled,
+                            onOpenTeam = { push(Dest.Team(dest.tournamentId, it)) },
+                            onOpenMatch = { m -> push(Dest.Match(dest.tournamentId, m)) },
+                        )
+                    }
+                    Dest.Profile -> ProfileScreen(
                         enabled = enabled,
                         onToggle = { source, on -> settings.setEnabled(source, on) },
                     )
                 }
             }
+        }
+        // 统一标题头（strong 玻璃）：一级页标题 + 右侧头像进「我的」；二级页带返回 chip。
+        OverlayTitleHeader(
+            title = when (val dest = current) {
+                null -> tab.label
+                is Dest.Focus -> mergedOf(dest.tournamentId).name
+                is Dest.Team -> dest.team.nameCn
+                is Dest.Match -> "比赛详情"
+                Dest.Profile -> "我的"
+            },
+            hazeState = hazeState,
+            onBack = if (current != null) ({ pop() }) else null,
+            trailing = if (current == null) {
+                { AvatarButton(hazeState = hazeState, onClick = { push(Dest.Profile) }) }
+            } else {
+                null
+            },
+        )
+        // 悬浮底栏（TokiMusic 口径：纯图标、灰紫 pill、加强档玻璃），只在一级页显示。
+        if (current == null) {
+            FloatingNavBar(
+                entries = Tab.entries.map { NavEntry(it.icon, it.label) },
+                selectedIndex = Tab.entries.indexOf(tab),
+                onSelect = { tab = Tab.entries[it] },
+                hazeState = hazeState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 8.dp),
+            )
         }
     }
 }
