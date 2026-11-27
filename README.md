@@ -4,8 +4,8 @@ Toki 系列体育应用（Android）。主页展示赛事概览，「战绩」�
 
 - 版本：0.1.0（versionCode 1）
 - 包名：`com.tokisport.app`
-- 设计：MD3E + TokiUI 0.2.0-b1（种子色 #6750A4、动态取色、语义圆角、悬浮胶囊底栏：主页 / 战绩 / 设置）
-- 字体：0.1.0 先用系统无衬线字体，Inter / 思源黑体内嵌留待后续版本
+- 设计：MD3E + TokiUI 0.2.0-b1（种子色 #6750A4、HCT 动态取色、语义圆角阶梯 4/8/12/16/28、24dp 页边距、悬浮胶囊底栏：主页 / 战绩 / 设置；底栏不采样窗口内容，按 TokiUI 实色回退：不透明表面 + 3dp 强调色描边）
+- 字体：全局内嵌 **Inter**（可变字体，中文回退 Noto Sans SC，与 TokiUI 搭配一致）；**队伍分数使用 Google Sans Flex**（比分、积分、胜平负、进失球、焦点数据等数字统一走 `ScoreText`）。字体文件位于 `app/src/main/res/font/`（inter.ttf / noto_sans_sc.ttf / google_sans_flex.ttf），Google Sans Flex 与 Noto Sans SC 的许可见 `app/src/main/assets/licenses/`
 
 ## 功能
 

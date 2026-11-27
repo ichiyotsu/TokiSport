@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -77,6 +76,27 @@ fun SourceTag(sources: Set<Source>, enabled: Set<Source>) {
     }
 }
 
+/**
+ * 队伍分数专用文本：比分、积分、胜平负、进失球等数字统一用 Google Sans Flex
+ * （ScoreFontFamily，中文标签经 Inter / Noto Sans SC 回退）。所有分数渲染必须走这里。
+ */
+@Composable
+fun ScoreText(
+    text: String,
+    modifier: Modifier = Modifier,
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyLarge,
+    fontWeight: FontWeight? = null,
+    color: Color = Color.Unspecified,
+) {
+    Text(
+        text = text,
+        modifier = modifier,
+        style = style.copy(fontFamily = ScoreFontFamily),
+        fontWeight = fontWeight,
+        color = color,
+    )
+}
+
 @Composable
 fun TournamentSwitcher(
     tournaments: List<Tournament>,
@@ -127,13 +147,25 @@ fun MatchRow(labels: Map<String, String>, match: MatchResult, enabled: Set<Sourc
             Spacer(Modifier.height(6.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "${teamLabel(labels, match.homeTeamId)}  ${match.homeScore} - ${match.awayScore}  ${teamLabel(labels, match.awayTeamId)}",
+                    text = teamLabel(labels, match.homeTeamId),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                )
+                ScoreText(
+                    text = "${match.homeScore} - ${match.awayScore}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = teamLabel(labels, match.awayTeamId),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End,
                 )
             }
             if (match.note.isNotEmpty()) {
@@ -179,7 +211,7 @@ fun HomeScreen(
         NoSourceState(onGoSettings)
         return
     }
-    LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
+    LazyColumn(modifier = Modifier.padding(horizontal = 24.dp)) {
         item {
             ElevatedCard(
                 modifier = Modifier
@@ -232,7 +264,7 @@ fun HomeScreen(
                                 ),
                             ) {
                                 Column(modifier = Modifier.padding(12.dp)) {
-                                    Text(value, style = MaterialTheme.typography.titleMedium,
+                                    ScoreText(value, style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold)
                                     Text(label, style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -328,12 +360,12 @@ fun TeamRow(team: TeamRecord, enabled: Set<Source>, onClick: () -> Unit) {
                 SourceTag(team.sources, enabled)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(
+                ScoreText(
                     "${team.points} 分",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
-                Text(
+                ScoreText(
                     "${team.won}胜 ${team.drawn}平 ${team.lost}负 · 进${team.gf?.toString() ?: "—"} 失${team.ga?.toString() ?: "—"}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -358,7 +390,7 @@ fun RecordsScreen(
         compareByDescending<TeamRecord> { it.points }
             .thenByDescending { it.gd ?: Int.MIN_VALUE },
     )
-    LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
+    LazyColumn(modifier = Modifier.padding(horizontal = 24.dp)) {
         item {
             Text(
                 "按综合积分排序 · 点球队查看比分与阵容",
@@ -390,7 +422,7 @@ fun TeamDetailScreen(
     onBack: () -> Unit,
 ) {
     val matches = tournament.matches.filter { it.homeTeamId == team.id || it.awayTeamId == team.id }
-    LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
+    LazyColumn(modifier = Modifier.padding(horizontal = 24.dp)) {
         item {
             TextButton(onClick = onBack, modifier = Modifier.padding(top = 8.dp)) { Text("← 返回") }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -414,7 +446,7 @@ fun TeamDetailScreen(
                         style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                     )
                     Spacer(Modifier.height(4.dp))
-                    Text(
+                    ScoreText(
                         "赛 ${team.played} · ${team.won}胜 ${team.drawn}平 ${team.lost}负 · " +
                             "进 ${team.gf?.toString() ?: "—"} · 失 ${team.ga?.toString() ?: "—"} · " +
                             "净 ${team.gd?.toString() ?: "—"} · 积分 ${team.points}",
@@ -506,11 +538,11 @@ fun LineupCard(lineup: Lineup, enabled: Set<Source>) {
 
 @Composable
 fun SettingsScreen(enabled: Set<Source>, onToggle: (Source, Boolean) -> Unit) {
-    LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
+    LazyColumn(modifier = Modifier.padding(horizontal = 24.dp)) {
         item { SectionTitle("数据源") }
         item {
             Surface(
-                shape = RoundedCornerShape(24.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surfaceContainer,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -544,7 +576,7 @@ fun SettingsScreen(enabled: Set<Source>, onToggle: (Source, Boolean) -> Unit) {
         item { SectionTitle("关于") }
         item {
             Surface(
-                shape = RoundedCornerShape(24.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surfaceContainer,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -553,7 +585,7 @@ fun SettingsScreen(enabled: Set<Source>, onToggle: (Source, Boolean) -> Unit) {
                         fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "设计：MD3E + TokiUI 0.2.0-b1。数据为本地快照（2026-11-27 核对），" +
+                        "设计：MD3E + TokiUI 0.2.0-b1；全局字体 Inter（中文回退 Noto Sans SC），队伍分数使用 Google Sans Flex。数据为本地快照（2026-11-27 核对），" +
                             "Google Sports 无官方免费 API，后续可通过 SerpApi / SearchApi 接入实时同步。",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

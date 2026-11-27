@@ -73,11 +73,17 @@ private fun TokiSportApp(settings: SourceSettings) {
 
     Scaffold(
         bottomBar = {
-            // TokiUI 悬浮胶囊底栏：主页 / 战绩 / 设置
+            // TokiUI 悬浮胶囊底栏：主页 / 战绩 / 设置。
+            // 本应用不采样窗口内容做真实磨砂，按 TokiUI material/fallback + solidBar 走实色回退：
+            // 不透明表面 + 3dp 强调色（primary）描边，描边与选中胶囊之间留间隙，不做整幅渐隐。
             Box(modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)) {
                 Surface(
-                    shape = RoundedCornerShape(50),
+                    shape = RoundedCornerShape(percent = 50),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    border = androidx.compose.foundation.BorderStroke(
+                        3.dp,
+                        MaterialTheme.colorScheme.primary,
+                    ),
                     shadowElevation = 6.dp,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -85,7 +91,7 @@ private fun TokiSportApp(settings: SourceSettings) {
                         Tab.entries.forEach { t ->
                             val selected = tab == t && selectedTeam == null || tab == t && t == Tab.RECORDS && selectedTeam != null
                             Surface(
-                                shape = RoundedCornerShape(50),
+                                shape = RoundedCornerShape(percent = 50),
                                 color = if (selected) MaterialTheme.colorScheme.secondaryContainer
                                 else MaterialTheme.colorScheme.surfaceContainerHigh,
                                 modifier = Modifier.weight(1f),
@@ -131,12 +137,12 @@ private fun TokiSportApp(settings: SourceSettings) {
                     },
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
                 )
                 when (tab) {
                     Tab.HOME -> {
                         Column {
-                            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            Box(modifier = Modifier.padding(horizontal = 24.dp)) {
                                 TournamentSwitcher(tournaments, tournamentId) { tournamentId = it }
                             }
                             HomeScreen(
@@ -150,7 +156,7 @@ private fun TokiSportApp(settings: SourceSettings) {
                     }
                     Tab.RECORDS -> {
                         Column {
-                            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            Box(modifier = Modifier.padding(horizontal = 24.dp)) {
                                 TournamentSwitcher(tournaments, tournamentId) { tournamentId = it }
                             }
                             RecordsScreen(
