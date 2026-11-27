@@ -100,8 +100,10 @@ private fun TokiSportApp(settings: SourceSettings) {
     BackHandler(enabled = stack.isNotEmpty()) { pop() }
 
     val hazeState = rememberHazeState()
+    // 标题头实测高度（含状态栏）回传后作内容顶部留白；未测得前用 状态栏 + 64dp 兜底。
+    var headerHeight by remember { mutableStateOf(0.dp) }
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val contentTop = statusTop + 72.dp
+    val contentTop = if (headerHeight > 0.dp) headerHeight else statusTop + 64.dp
     val contentBottom = if (current == null) 96.dp else 24.dp
 
     Box(
@@ -190,6 +192,7 @@ private fun TokiSportApp(settings: SourceSettings) {
                 Dest.Profile -> "我的"
             },
             hazeState = hazeState,
+            onHeightMeasured = { headerHeight = it },
             onBack = if (current != null) ({ pop() }) else null,
             trailing = if (current == null) {
                 { AvatarButton(hazeState = hazeState, onClick = { push(Dest.Profile) }) }

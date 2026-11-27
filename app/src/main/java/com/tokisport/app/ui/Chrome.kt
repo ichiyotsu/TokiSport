@@ -1,8 +1,17 @@
 package com.tokisport.app.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -23,21 +32,48 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 
 /**
- * 全应用唯一的标题头（TokiMusicUI《组件》统一标题头口径）：
+ * 按压缩放反馈（TokiMusicUI《组件》按钮族：玻璃圆钮带 pressScale，默认缩到 0.92）。
+ * 与 clickable 共用同一个 [MutableInteractionSource]，按压时整钮等比缩小、松手回弹。
+ */
+fun Modifier.pressScale(
+    interactionSource: MutableInteractionSource,
+    scaleDown: Float = 0.92f,
+): Modifier = composed {
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) scaleDown else 1f,
+        label = "pressScale",
+    )
+    graphicsLayer {
+        scaleX = scale
+        scaleY = scale
+    }
+}
+
+/**
+ * 全应用唯一的标题头（TokiMusicUI《组件》统一标题头口径，与 TokiMusic OverlayTitleHeader 同构）：
  * 标题 chip（全圆、headlineMedium Bold）+ 返回 chip（56dp 圆、24dp 图标），同磨砂、恒显示，
- * 返回与标题间距固定 12dp；横向边距 24dp、最小高 64dp（含状态栏 padding）。
+ * 返回与标题间距固定 12dp；横向边距 24dp、最小高 64dp（含状态栏 padding，无额外纵向 padding，
+ * 56dp chip 在 64dp 内居中自然形成上下 4dp 呼吸）。
  * strong 形态与底栏同配方（32dp 模糊 + 45% veil）——本应用标题头恒用 strong。
+ * 标题切换走淡入 + 上滑过渡；实测高度经 [onHeightMeasured] 回传，内容区据此留白（不硬编码）。
  * 一级页（竞技 / 积分）标题行右侧放头像钮（trailing），点按进「我的」。
  */
 @Composable
@@ -47,14 +83,19 @@ fun OverlayTitleHeader(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
+    onHeightMeasured: ((Dp) -> Unit)? = null,
 ) {
+    val density = LocalDensity.current
     val titleShape = RoundedCornerShape(percent = 50)
     Row(
         modifier
             .fillMaxWidth()
+            .onSizeChanged { size ->
+                onHeightMeasured?.invoke(with(density) { size.height.toDp() })
+            }
             .statusBarsPadding()
             .heightIn(min = 64.dp)
-            .padding(horizontal = 24.dp, vertical = 4.dp),
+            .padding(horizontal = 24.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -77,7 +118,7 @@ fun OverlayTitleHeader(
                     .weight(1f, fill = false)
                     .heightIn(min = 56.dp)
                     .clip(titleShape),
-                contentAlignment = Alignment.Center,
+                contentAlignment = Alignment.CenterStart,
             ) {
                 TokiGlassChipBackdrop(
                     shape = titleShape,
@@ -85,15 +126,25 @@ fun OverlayTitleHeader(
                     hazeState = hazeState,
                     strong = true,
                 )
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                )
+                // 标题切换：淡入 + 上滑（与 TokiMusic 同口径；本应用未启用 motionScheme，用 tween）。
+                AnimatedContent(
+                    targetState = title,
+                    transitionSpec = {
+                        (fadeIn(tween(300)) + slideInVertically(tween(300)) { it / 4 }) togetherWith
+                            (fadeOut(tween(300)) + slideOutVertically(tween(300)) { -it / 4 })
+                    },
+                    label = "headerTitle",
+                ) { currentTitle ->
+                    Text(
+                        text = currentTitle,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
             }
         }
         if (trailing != null) {
@@ -103,7 +154,7 @@ fun OverlayTitleHeader(
     }
 }
 
-/** 玻璃圆钮（TokiMusicUI 按钮族：56dp 圆、图标 24dp、与标题同磨砂）。 */
+/** 玻璃圆钮（TokiMusicUI 按钮族：56dp 圆、图标 24dp、与标题同磨砂、pressScale 按压）。 */
 @Composable
 fun GlassChipButton(
     icon: ImageVector,
@@ -112,15 +163,17 @@ fun GlassChipButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interaction = remember { MutableInteractionSource() }
     Box(
         modifier
             .size(56.dp)
             .clip(CircleShape)
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = interaction,
                 indication = ripple(bounded = true),
                 onClick = onClick,
-            ),
+            )
+            .pressScale(interaction),
         contentAlignment = Alignment.Center,
     ) {
         TokiGlassChipBackdrop(
@@ -144,15 +197,17 @@ fun GlassChipButton(
  */
 @Composable
 fun AvatarButton(hazeState: HazeState, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
     Box(
         Modifier
             .size(56.dp)
             .clip(CircleShape)
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = interaction,
                 indication = ripple(bounded = true),
                 onClick = onClick,
-            ),
+            )
+            .pressScale(interaction),
         contentAlignment = Alignment.Center,
     ) {
         TokiGlassChipBackdrop(
@@ -216,16 +271,18 @@ fun FloatingNavBar(
         Row(modifier = Modifier.padding(8.dp)) {
             entries.forEachIndexed { index, entry ->
                 val selected = index == selectedIndex
+                val interaction = remember { MutableInteractionSource() }
                 Box(
                     Modifier
                         .size(width = 64.dp, height = 56.dp)
                         .clip(RoundedCornerShape(percent = 50))
                         .background(if (selected) tokiPillColor() else androidx.compose.ui.graphics.Color.Transparent)
                         .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
+                            interactionSource = interaction,
                             indication = ripple(bounded = true),
                             onClick = { onSelect(index) },
-                        ),
+                        )
+                        .pressScale(interaction),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(

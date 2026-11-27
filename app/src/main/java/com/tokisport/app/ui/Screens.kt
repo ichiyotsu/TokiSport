@@ -167,6 +167,7 @@ fun MatchRow(
     labels: Map<String, String>,
     enabled: Set<Source>,
     onClick: (() -> Unit)? = null,
+    showAttribution: Boolean = true,
 ) {
     val scheme = MaterialTheme.colorScheme
     val homeWin = match.homeScore > match.awayScore
@@ -230,7 +231,7 @@ fun MatchRow(
                 )
             }
         }
-        if (match.note.isNotEmpty() || match.sources.isNotEmpty()) {
+        if (match.note.isNotEmpty() || (showAttribution && match.sources.isNotEmpty())) {
             Spacer(Modifier.height(4.dp))
             Row(modifier = Modifier.padding(start = 69.dp)) {
                 if (match.note.isNotEmpty()) {
@@ -242,7 +243,9 @@ fun MatchRow(
                     )
                     Spacer(Modifier.width(8.dp))
                 }
-                SourceTag(match.sources, enabled)
+                if (showAttribution) {
+                    SourceTag(match.sources, enabled)
+                }
             }
         }
     }
@@ -259,6 +262,7 @@ fun MatchGroupContainer(
     labels: Map<String, String>,
     enabled: Set<Source>,
     onMatchClick: (MatchResult) -> Unit,
+    showAttribution: Boolean = true,
 ) {
     Surface(
         shape = MaterialTheme.shapes.large,
@@ -288,7 +292,11 @@ fun MatchGroupContainer(
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             matches.forEachIndexed { index, match ->
-                MatchRow(match, teamsById, labels, enabled, onClick = { onMatchClick(match) })
+                MatchRow(
+                    match, teamsById, labels, enabled,
+                    onClick = { onMatchClick(match) },
+                    showAttribution = showAttribution,
+                )
                 if (index < matches.lastIndex) {
                     HorizontalDivider(
                         color = MaterialTheme.colorScheme.outlineVariant,
@@ -486,6 +494,75 @@ fun standingsOrder(): Comparator<TeamRecord> =
 fun rankLabelQualifies(team: TeamRecord): Boolean =
     team.rankLabel.contains("晋级") || team.rankLabel.contains("已出线")
 
+/**
+ * 竞技页联赛块（本轮口径）：一个赛事 = 一个统一容器，小圆角（形状阶梯 small 8dp），
+ * 赛事头行 + 各阶段小节 + 比赛行全在同一圆角面内，内部细分隔线，块间留距。
+ * 块内只展示数据：不放介绍文案、不放来源标注（比赛行 showAttribution = false）。
+ */
+@Composable
+fun LeagueBlock(
+    tournament: Tournament,
+    teamsById: Map<String, TeamRecord>,
+    labels: Map<String, String>,
+    enabled: Set<Source>,
+    onMatchClick: (MatchResult) -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val groups = remember(tournament) { tournament.matches.groupBy { it.stage }.entries.toList() }
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = scheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "🏆 ${tournament.name}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "${tournament.matches.size} 场",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = scheme.onSurfaceVariant,
+                )
+            }
+            groups.forEachIndexed { groupIndex, (stage, groupMatches) ->
+                HorizontalDivider(color = scheme.outlineVariant)
+                Text(
+                    text = stage,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+                groupMatches.forEachIndexed { index, match ->
+                    MatchRow(
+                        match, teamsById, labels, enabled,
+                        onClick = { onMatchClick(match) },
+                        showAttribution = false,
+                    )
+                    if (index < groupMatches.lastIndex) {
+                        HorizontalDivider(
+                            color = scheme.outlineVariant,
+                            modifier = Modifier.padding(horizontal = 12.dp),
+                        )
+                    }
+                }
+                if (groupIndex == groups.lastIndex) {
+                    Spacer(Modifier.height(4.dp))
+                }
+            }
+        }
+    }
+}
+
 // ---------- 竞技页 ----------
 
 /**
@@ -518,28 +595,17 @@ fun ArenaScreen(
                 )
             }
         }
-        // 按联赛分栏：每项赛事一栏，栏内按阶段分组统一展示全部比赛成绩
-        tournaments.forEach { tournament ->
-            item { SectionTitle(tournament.name) }
-            val teamsById = tournament.teams.associateBy { it.id }
-            val labels = labelsByTournament[tournament.id] ?: emptyMap()
-            val groups = tournament.matches.groupBy { it.stage }.entries.toList()
-            items(groups) { (stage, groupMatches) ->
-                MatchGroupContainer(
-                    header = "🏆 ${tournament.shortName} · $stage",
-                    matches = groupMatches,
-                    teamsById = teamsById,
-                    labels = labels,
+        // 按联赛分栏：每项赛事一个小圆角统一块（赛事头 + 阶段 + 全部比赛成绩），
+        // 块内只展示数据——无介绍文案、无来源标注；块间留距。
+        tournaments.forEachIndexed { index, tournament ->
+            item {
+                Spacer(Modifier.height(if (index == 0) 16.dp else 20.dp))
+                LeagueBlock(
+                    tournament = tournament,
+                    teamsById = tournament.teams.associateBy { it.id },
+                    labels = labelsByTournament[tournament.id] ?: emptyMap(),
                     enabled = enabled,
                     onMatchClick = { match -> onOpenMatch(tournament, match) },
-                )
-            }
-            item {
-                Text(
-                    tournament.dataScope,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp),
                 )
             }
         }
