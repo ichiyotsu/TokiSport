@@ -1218,7 +1218,7 @@ fun SettingsScreen(enabled: Set<Source>, onToggle: (Source, Boolean) -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("TokiSport 0.1.1", style = MaterialTheme.typography.titleSmall,
+                    Text("TokiSport 0.1.2", style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(4.dp))
                     Text(
