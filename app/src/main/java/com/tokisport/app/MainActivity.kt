@@ -33,6 +33,7 @@ import com.tokisport.app.ui.RecordsScreen
 import com.tokisport.app.ui.SettingsScreen
 import com.tokisport.app.ui.TeamDetailScreen
 import com.tokisport.app.ui.TokiSportTheme
+import com.tokisport.app.ui.TournamentChipRow
 import com.tokisport.app.ui.TournamentSwitcher
 
 class MainActivity : ComponentActivity() {
@@ -151,13 +152,18 @@ private fun TokiSportApp(settings: SourceSettings) {
                                 enabled = enabled,
                                 onGoSettings = { tab = Tab.SETTINGS },
                                 onOpenRecords = { tab = Tab.RECORDS },
+                                onOpenTeam = {
+                                    selectedTeam = it
+                                    tab = Tab.RECORDS
+                                },
                             )
                         }
                     }
                     Tab.RECORDS -> {
                         Column {
+                            // Sofascore 式横向筛选芯片行（战绩页赛事切换）
                             Box(modifier = Modifier.padding(horizontal = 24.dp)) {
-                                TournamentSwitcher(tournaments, tournamentId) { tournamentId = it }
+                                TournamentChipRow(tournaments, tournamentId) { tournamentId = it }
                             }
                             RecordsScreen(
                                 tournament = merged,
