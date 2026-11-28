@@ -108,7 +108,7 @@ fun ProfileScreen(
                 GroupedRow(
                     position = SegmentPosition.First,
                     title = "版本",
-                    subtitle = "TokiSport 0.1.3",
+                    subtitle = "TokiSport 0.1.4",
                 )
                 GroupedRow(
                     position = SegmentPosition.Middle,
