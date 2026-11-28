@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Simple football: white circle with pentagon seams, centred in the adaptive safe zone. -->
+<!-- reicon/discover-filled (https://yesicon.app/reicon/discover-filled), path data verbatim.
+     TokiStudio 0.1.10 style: black glyph on pure white, scale 2.0 centered —
+     glyph outer diameter 40dp on the 108dp canvas (spans 30..78dp). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,30a24,24 0,1 0,0.001 0z" />
-    <path
-        android:fillColor="#6750A4"
-        android:pathData="M54,44l7.6,5.5 -2.9,8.9h-9.4l-2.9,-8.9z" />
+    <group
+        android:scaleX="2.0"
+        android:scaleY="2.0"
+        android:translateX="30"
+        android:translateY="30">
+        <path
+            android:fillColor="#FF000000"
+            android:fillType="evenOdd"
+            android:pathData="M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10s10-4.49 10-10S17.51 2 12 2m-1.5 14.13c-1.45 0-2.62-1.18-2.62-2.62c0-3.1 2.52-5.62 5.62-5.62c1.45 0 2.62 1.18 2.62 2.62c0 3.09-2.52 5.62-5.62 5.62" />
+    </group>
 </vector>
